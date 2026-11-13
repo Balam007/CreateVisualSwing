@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diseñador visual Java Swing</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px Arial,sans-serif;background:#f3f4f6;color:#20242b}
+header{background:#202938;color:white;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+button{cursor:pointer;border:1px solid #c7ccd4;border-radius:6px;padding:8px 12px;background:white}
+.primary{background:#2563eb;color:white;border-color:#2563eb}
+main{display:grid;grid-template-columns:150px minmax(320px,1fr) 190px;gap:12px;padding:14px;max-width:1300px;margin:auto}
+.panel{background:white;border:1px solid #d8dce3;border-radius:9px;padding:12px;min-width:0}
+h3{font-size:15px;margin:0 0 12px}.tools{display:grid;gap:7px}.tool{padding:10px 5px;border:1px solid #d5d9e0;border-radius:6px;text-align:center;cursor:grab;background:#f8fafc}
+.tool:hover{border-color:#2563eb;background:#eff6ff}.muted{color:#667085;font-size:12px}
+.stage-wrap{background:#eef0f3;padding:12px;overflow:auto;display:flex;justify-content:center;border-radius:7px}
+#canvas{position:relative;width:520px;height:420px;flex:none;background:white;border:1px solid #9ca3af;box-shadow:0 2px 8px #0002;color:#111}
+#bar{height:27px;background:#e5e7eb;border-bottom:1px solid #aaa;padding:5px 9px;font-size:12px}
+#surface{position:absolute;top:27px;left:0;right:0;bottom:0;background-image:linear-gradient(#e5e7eb 1px,transparent 1px),linear-gradient(90deg,#e5e7eb 1px,transparent 1px);background-size:20px 20px}
+.component{position:absolute;display:flex;align-items:center;justify-content:center;padding:3px 5px;white-space:nowrap;cursor:move;user-select:none;font-size:13px;border:1px solid transparent}
+.component.selected{border:1px dashed #2563eb;outline:1px solid #2563eb}
+.component button{background:#e5e7eb;color:#111;border:1px solid #999;padding:3px 12px}
+.component input,.component select{background:white;color:#111;border:1px solid #aaa;padding:3px;width:100%}
+.component .check{display:flex;align-items:center;gap:4px}.component .check input{width:auto}
+.field{margin:9px 0}.field label{display:block;font-size:12px;color:#667085;margin-bottom:4px}
+.field input{width:100%;padding:7px;border:1px solid #cbd0d8;border-radius:5px}
+pre{white-space:pre;overflow:auto;max-height:360px;background:#111827;color:#e5e7eb;padding:14px;border-radius:7px;font-size:12px;line-height:1.5}
+footer{max-width:1300px;margin:0 auto 18px;padding:0 14px;color:#667085;font-size:12px}
+@media(max-width:760px){main{grid-template-columns:1fr}.tools{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header><div><strong>Diseñador visual Java Swing</strong><div style="font-size:12px;opacity:.8;margin-top:4px">Editor de formularios JFrame · versión local</div></div><div><button id="new">Nuevo</button> <button class="primary" id="generate">Generar código Java</button></div></header>
+<main>
+<section class="panel"><h3>Componentes</h3><div class="tools" id="palette">
+<div class="tool" draggable="true" data-type="JLabel">T · JLabel</div><div class="tool" draggable="true" data-type="JButton">▣ · JButton</div><div class="tool" draggable="true" data-type="JTextField">▤ · JTextField</div><div class="tool" draggable="true" data-type="JCheckBox">☑ · JCheckBox</div><div class="tool" draggable="true" data-type="JRadioButton">◉ · JRadioButton</div><div class="tool" draggable="true" data-type="JComboBox">▾ · JComboBox</div><div class="tool" draggable="true" data-type="JTextArea">▤ · JTextArea</div><div class="tool" draggable="true" data-type="JPanel">▧ · JPanel</div>
+</div><p class="muted">Arrastra un componente al formulario o haz clic para agregarlo.</p></section>
+<section class="panel"><h3>Área de diseño <span class="muted" id="count">0 componentes</span></h3><div class="stage-wrap"><div id="canvas"><div id="bar">Mi formulario</div><div id="surface"></div></div></div><p class="muted">Selecciona y arrastra los elementos. Modifica sus propiedades en el panel derecho.</p></section>
+<section class="panel"><h3>Propiedades</h3><div id="properties" class="muted">Selecciona un componente.</div></section>
+<section class="panel" style="grid-column:1/-1"><h3>Código Java generado</h3><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button id="copy">Copiar código</button><button id="download">Descargar .java</button></div><pre id="code">// Pulsa "Generar código Java" para crear el código.</pre><div id="status" class="muted">El proyecto se ejecuta localmente en tu navegador. No requiere conexión a Internet.</div></section>
+</main>
+<footer>Nota: esta versión genera un formulario Swing con posicionamiento absoluto (setBounds), útil para prácticas introductorias.</footer>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),surface=$('surface');let items=[],selected=null,next=1,lastCode='';
+const defs={JLabel:['Etiqueta',90,26],JButton:['Aceptar',90,30],JTextField:['',140,27],JCheckBox:['Opción',110,27],JRadioButton:['Opción 1',110,27],JComboBox:['Opción 1,Opción 2,Opción 3',140,28],JTextArea:['Escribe aquí...',160,65],JPanel:['Panel',180,100]};
+function add(type,x=25+(items.length%4)*20,y=35+(items.length%5)*30){let d=defs[type];let o={id:next++,type,text:d[0],x,y,w:d[1],h:d[2]};items.push(o);render();select(o.id)}
+function render(){surface.innerHTML='';items.forEach(o=>{let el=document.createElement('div');el.className='component'+(selected===o.id?' selected':'');el.style.cssText=`left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;${o.type==='JPanel'?'border:1px dashed #777;background:#f3f4f6':''}`;
+if(o.type==='JLabel')el.textContent=o.text;
+if(o.type==='JButton'){let b=document.createElement('button');b.textContent=o.text;el.append(b)}
+if(o.type==='JTextField'){let i=document.createElement('input');i.value=o.text;i.readOnly=true;el.append(i)}
+if(['JCheckBox','JRadioButton'].includes(o.type)){let l=document.createElement('label');l.className='check';let i=document.createElement('input');i.type=o.type==='JCheckBox'?'checkbox':'radio';l.append(i,document.createTextNode(o.text));el.append(l)}
+if(o.type==='JComboBox'){let s=document.createElement('select');o.text.split(',').forEach(v=>{let op=document.createElement('option');op.textContent=v;s.append(op)});el.append(s)}
+if(o.type==='JTextArea'){let t=document.createElement('div');t.style.cssText='background:white;border:1px solid #aaa;width:100%;height:100%;padding:4px;white-space:pre-wrap;overflow:hidden';t.textContent=o.text;el.append(t)}
+el.addEventListener('pointerdown',e=>{if(['INPUT','SELECT'].includes(e.target.tagName))return;e.preventDefault();select(o.id);let r=surface.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,ox=o.x,oy=o.y;el.setPointerCapture(e.pointerId);let move=ev=>{o.x=Math.max(0,Math.min(r.width-o.w,ox+ev.clientX-sx));o.y=Math.max(0,Math.min(r.height-o.h,oy+ev.clientY-sy));el.style.left=o.x+'px';el.style.top=o.y+'px'};let end=()=>{el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',end)};el.addEventListener('pointermove',move);el.addEventListener('pointerup',end)});
+el.addEventListener('click',e=>{e.stopPropagation();select(o.id)});surface.append(el)});$('count').textContent=items.length+' componentes'}
+function select(id){selected=id;render();properties()}
+function properties(){let p=$('properties');p.innerHTML='';let o=items.find(v=>v.id===selected);if(!o){p.textContent='Selecciona un componente.';return}let h=document.createElement('b');h.textContent=o.type;p.append(h);
+[['Texto / contenido','text','text'],['Posición X','x','number'],['Posición Y','y','number'],['Ancho','w','number'],['Alto','h','number']].forEach(([label,key,type])=>{let d=document.createElement('div');d.className='field';let l=document.createElement('label');l.textContent=label;let i=document.createElement('input');i.type=type;i.value=o[key];i.addEventListener('input',()=>{o[key]=type==='number'?Number(i.value):i.value;render()});d.append(l,i);p.append(d)});
+let b=document.createElement('button');b.textContent='Eliminar componente';b.onclick=()=>{items=items.filter(v=>v.id!==selected);selected=null;render();properties()};p.append(b)}
+$('palette').querySelectorAll('[data-type]').forEach(el=>{el.addEventListener('dragstart',e=>e.dataTransfer.setData('type',el.dataset.type));el.addEventListener('click',()=>add(el.dataset.type))});
+surface.addEventListener('dragover',e=>e.preventDefault());surface.addEventListener('drop',e=>{e.preventDefault();let t=e.dataTransfer.getData('type');if(!defs[t])return;let r=surface.getBoundingClientRect();add(t,Math.max(0,e.clientX-r.left),Math.max(0,e.clientY-r.top))});surface.addEventListener('click',e=>{if(e.target===surface){selected=null;render();properties()}});
+$('new').onclick=()=>{if(!confirm('¿Crear un formulario nuevo? Se perderá el diseño actual.'))return;items=[];selected=null;next=1;render();properties();$('code').textContent='// Genera el código para verlo aquí.';lastCode=''};
+const q=s=>'"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n')+'"';
+function generate(){let a=['import javax.swing.*;','','public class MiFormulario extends JFrame {'];items.forEach(o=>a.push('    private '+(o.type==='JComboBox'?'JComboBox<String>':o.type)+' componente'+o.id+';'));a.push('','    public MiFormulario() {','        setTitle("Mi formulario");','        setSize(520, 420);','        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);','        setLayout(null);');items.forEach(o=>{let n='componente'+o.id;if(o.type==='JComboBox')a.push('        '+n+' = new JComboBox<>(new String[]{'+o.text.split(',').map(q).join(', ')+'});');else if(o.type==='JPanel')a.push('        '+n+' = new JPanel();');else a.push('        '+n+' = new '+o.type+'('+q(o.text)+');');a.push('        '+n+'.setBounds('+o.x+', '+o.y+', '+o.w+', '+o.h+');','        add('+n+');')});a.push('    }','','    public static void main(String[] args) {','        SwingUtilities.invokeLater(() -> new MiFormulario().setVisible(true));','    }','}');lastCode=a.join('\n');$('code').textContent=lastCode;$('status').textContent='Código generado. Puedes copiarlo o descargar MiFormulario.java.'}
+$('generate').onclick=generate;$('copy').onclick=async()=>{if(!lastCode)generate();try{await navigator.clipboard.writeText(lastCode);$('status').textContent='Código copiado al portapapeles.'}catch(e){$('status').textContent='Selecciona el código y cópialo manualmente.'}};
+$('download').onclick=()=>{if(!lastCode)generate();let blob=new Blob([lastCode],{type:'text/x-java;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='MiFormulario.java';a.click();URL.revokeObjectURL(url)};
+add('JLabel',25,25);add('JTextField',125,25);add('JButton',125,75);
+})();
+</script>
+</body></html>
